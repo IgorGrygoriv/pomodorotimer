@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import TimerDisplay from './TimerDisplay';
 import TimerControls from './TimerControls';
 import TimerSettings from './TimerSettings';
-import SessionInfo from './SessionInfo';
+import TaskList from './TaskList';
+import useLocalStorage from '../hooks/useLocalStorage';
 
 function PomodoroTimer() {
   const [workDuration, setWorkDuration] = useState(25);
@@ -11,6 +12,7 @@ function PomodoroTimer() {
   const [sessionType, setSessionType] = useState('work');
   const [timeLeft, setTimeLeft] = useState(workDuration * 60);
   const [isRunning, setIsRunning] = useState(false);
+  const [tasks, setTasks] = useLocalStorage('pomodoro-tasks', []);
 
   useEffect(() => {
     let interval = null;
@@ -65,34 +67,80 @@ function PomodoroTimer() {
     }
   };
 
+  const handleAddTask = (text) => {
+    const newTask = {
+      id: Date.now(),
+      text,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+    setTasks([...tasks, newTask]);
+  };
+
+  const handleDeleteTask = (taskId) => {
+    setTasks(tasks.filter((task) => task.id !== taskId));
+  };
+
+  const handleToggleTask = (taskId) => {
+    setTasks(
+      tasks.map((task) =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task
+      )
+    );
+  };
+
+  const totalTime = sessionType === 'work' ? workDuration * 60 : breakDuration * 60;
+
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-center text-4xl">Pomodoro Timer</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-8">
-            <SessionInfo sessionType={sessionType} />
-            <TimerDisplay
-              timeLeft={timeLeft}
-              sessionType={sessionType}
-            />
-            <TimerControls
-              isRunning={isRunning}
-              onStartPause={handleStartPause}
-              onReset={handleReset}
-            />
-            <TimerSettings
-              workDuration={workDuration}
-              breakDuration={breakDuration}
-              onWorkDurationChange={handleWorkDurationChange}
-              onBreakDurationChange={handleBreakDurationChange}
-              disabled={isRunning}
-            />
-          </div>
-        </CardContent>
-      </Card>
+    <div className="w-full mx-auto px-4">
+      <div className="text-center mb-8">
+        <h1 className="text-5xl font-bold" style={{ color: '#00B8D4' }}>
+          PomodoroTIME MWAHAHAHA
+        </h1>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
+        <div className="space-y-6">
+          <Card className="backdrop-blur-sm bg-card/50 border-2">
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                <TimerDisplay
+                  timeLeft={timeLeft}
+                  sessionType={sessionType}
+                  totalTime={totalTime}
+                />
+                <TimerControls
+                  isRunning={isRunning}
+                  onStartPause={handleStartPause}
+                  onReset={handleReset}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="backdrop-blur-sm bg-card/50 border-2">
+            <CardContent className="pt-6">
+              <TimerSettings
+                workDuration={workDuration}
+                breakDuration={breakDuration}
+                onWorkDurationChange={handleWorkDurationChange}
+                onBreakDurationChange={handleBreakDurationChange}
+                disabled={isRunning}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tasks Section */}
+        <div className="lg:sticky lg:top-4 h-fit">
+          <TaskList
+            tasks={tasks}
+            onAddTask={handleAddTask}
+            onDeleteTask={handleDeleteTask}
+            onToggleTask={handleToggleTask}
+          />
+        </div>
+      </div>
     </div>
   );
 }
